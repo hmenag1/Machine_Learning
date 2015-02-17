@@ -1,0 +1,7 @@
+---
+title: "Machine Learning Course Project"
+author: "Steve Senior"
+date: "17 February 2015"
+output: html_document
+---
+
