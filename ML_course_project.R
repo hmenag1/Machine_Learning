@@ -15,8 +15,7 @@ training  <- filter(training, new_window == "no")
 
 fn <- function(x) sum(is.na(x)) == 0
 use_cols <- sapply(training, fn)
-drop_cols <- c(1,3,4,5,6)
-use_cols[drop_cols] <- FALSE
+use_cols[1:6] <- FALSE
 training <- training[, use_cols]
 validation <- validation[, use_cols]
 
@@ -26,10 +25,14 @@ in_train <- createDataPartition(training$classe, p = 0.8, list = FALSE)
 testing <- training[-in_train,]
 training <- training[in_train,]
 
+# Set trainControl parameters for cross-validation
+ctrl <- trainControl(method = "cv")
+
 # Fit a linear discriminant model
 library(MASS)
-fit.lda <- train(classe ~ . -accel_arm_x -user_name,
+fit.lda <- train(classe ~ . -accel_arm_x,
 		     method = "lda",
+		     trControl = ctrl,
 		     data = training)
 
 pred.lda <- predict(fit.lda, newdata = testing)
@@ -47,8 +50,9 @@ PCA <- confusionMatrix(pred.lda.pca, testing$classe)$overall[1]
 # Fit a decision tree model
 set.seed(1212)
 library(rpart)
-fit.cart <- train(classe ~ . -user_name,
+fit.cart <- train(classe ~ .,
 			method = "rpart",
+			trControl = ctrl,
 			data = training)
 
 pred.cart <- predict(fit.cart, newdata = testing)
@@ -57,9 +61,10 @@ CART <- confusionMatrix(pred.cart, testing$classe)$overall[1]
 # Fit a boosted decision tree model
 library(gbm)
 set.seed(2222)
-fit.gbm <- train(classe ~ . -user_name,
+fit.gbm <- train(classe ~ .,
 		     method = "gbm",
 		     data = training,
+		     trControl = ctrl,
 		     verbose = F)
 
 pred.gbm <- predict(fit.gbm, newdata = testing)
@@ -68,7 +73,11 @@ GBM <- confusionMatrix(pred.gbm, testing$classe)$overall[1]
 # Fit a random forest model
 library(randomForest)
 set.seed(3333)
-fit.rf <- randomForest(classe ~ . -user_name -num_window, data = training, importance = T)
+fit.rf <- train(classe ~ ., 
+		    method = "rf",
+		    data = training, 
+		    trControl = ctrl,
+		    importance = T)
 pred.rf <- predict(fit.rf, newdata = testing)
 RF <- confusionMatrix(pred.rf, testing$classe)$overall[1]
 
@@ -77,7 +86,7 @@ mod_perf <- data.frame(LDA, CART, GBM, RF)
 mod_perf
 
 # Predict on validation data using best model (rf)
-pred_val <- predict(fit.rf, newdata = validation)
+pred_val.rf <- predict(fit.rf, newdata = validation)
 
 # File generation function from course instructions
 pml_write_files = function(x){
@@ -88,4 +97,14 @@ pml_write_files = function(x){
 	}
 }
 
-pml_write_files(pred_val)
+pml_write_files(pred_val.rf)
+
+# Compare predictions from each fit
+pred_val.gbm <- predict(fit.gbm, newdata = validation)
+pred_val.lda <- predict(fit.lda, newdata = validation)
+pred_val.cart <- predict(fit.cart, newdata = validation)
+consensus <- data.frame(pred_val.rf, pred_val.gbm, pred_val.lda, pred_val.cart)
+consensus
+sum(pred_val.rf == pred_val.gbm)
+sum(pred_val.rf == pred_val.lda)
+sum(pred_val.rf == pred_val.cart)
