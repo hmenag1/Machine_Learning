@@ -1,9 +1,6 @@
----
-title: "Machine Learning Course Project"
-author: "Steve Senior"
-date: "17 February 2015"
-output: html_document
----
+# Practical Machine Learning Course Project
+Steven Senior
+*18 February 2015*
 
 ## Summary
 The task for this assignment was to train an algorithm to predict whether a weight lifting exercise was being performed well or not using data from sensors mounted on the participant and weight. I describe how I have cleaned the data and narrowed down the variables to be used for prediction. I describe my approach to building and testing predictive models. I then fit four different models and assess their likely out-of-sample accuracy using two different approaches.
