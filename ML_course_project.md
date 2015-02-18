@@ -12,7 +12,8 @@ The model which performed best was a random forest model, which achieved an **es
 
 ## Loading packages
 I used the following packages for this project. 
-```{r load packages, results='hide', message=FALSE, warning=FALSE}
+
+```r
 library(dplyr); library(caret); library(MASS); library(plyr)
 library(rpart); library(gbm); library(randomForest)
 ```
@@ -22,24 +23,35 @@ The data for this task is provided by the groupware Human Activity Recognition p
 
 The code below downloads the data and loads it into R:
 
-```{r get data}
+
+```r
 file.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 download.file(file.url, destfile = "pml-training.csv", method = "curl")
 training <- read.csv("pml-training.csv", na.string = c("", "NA"))
 dim(training)
 ```
 
-From this we can see that there are `r nrow(training)` observations of `r ncol(training)` variables. However, a quick inspection shows that a lot of the variables are mostly empty. The code below calculates the number of missing values for each variable. 
+```
+## [1] 19622   160
+```
 
-```{r cacluate NAs}
+From this we can see that there are 19622 observations of 160 variables. However, a quick inspection shows that a lot of the variables are mostly empty. The code below calculates the number of missing values for each variable. 
+
+
+```r
 na.count <- function(x) sum(is.na(x))
 na.vars <- sapply(training, na.count)
 sum(na.vars == 0)
 ```
 
+```
+## [1] 60
+```
+
 There are 60 variables that contain no missing data and 100 that contain mostly missing data. The background material and the variable names suggest that the variables with the missing data contain summary statistics for each window of data collection. Since the testing data are given as individual time points within a window, we can afford to drop the rows containing summary information and the columns that contain summary variables. Since the goal is to produce an algorithm that can tell whether an unknown user is performing an exercise well or not, I also drop the variables that won't help with this: the 'X' sample number, user name data and the timestamp information. 
 
-```{r process data}
+
+```r
 training  <- filter(training, new_window == "no") # Drops window summary rows
 
 no.na <- function(x) sum(is.na(x)) == 0
@@ -48,14 +60,15 @@ use_cols[1:6] <- FALSE
 training <- training[, use_cols]
 ```
 
-We now have a training data set of `r nrow(training)` observations of `r ncol(training)` variables. I haven't chosen to do any other pre-processing of the data, such as centering or scaling, log transforms or principle components analysis (I did try using PCA to improve the accuracy of the linear discriminant algorithm, but it made things worse).
+We now have a training data set of 19216 observations of 54 variables. I haven't chosen to do any other pre-processing of the data, such as centering or scaling, log transforms or principle components analysis (I did try using PCA to improve the accuracy of the linear discriminant algorithm, but it made things worse).
 
 ## Cross-validation design
 I use two approaches to estimating the accuracy of the models. The first is to use cross-validation within the training set. By default, the caret package calculates estimates of accuracy by random sampling with replacement (so-called bootstrapping) using 25 repetitions. This may overestimate the accuracy of the model. There are better alternatives that can be accessed using the trainControl function in caret. Here I will use 10-fold cross-validation.
 
 The second approach is to split the training set into a training and testing set. Since we have *a lot* of training data, we can use this approach as well. This is the approach that I report in selecting the best algorithm.
 
-```{r cross-validation settings}
+
+```r
 # Split training into training and testing data sets
 set.seed(1111)
 in_train <- createDataPartition(training$classe, p = 0.8, list = FALSE)
@@ -77,7 +90,8 @@ Here I train four models:
 ### Linear discriminant analysis
 Linear discriminant analysis is one of the simplest approaches to classification. This approach tries to find linear boundaries in the variable space that best separate the categories. It is similar to logistic regression, but relies on more assumptions about the data (namely that the distributions of the features within categories are normally distributed). However, it is more naturally suited to classification problems like this one where the outcome variable is multinomial (classe is a factor with five levels).
 
-```{r lda}
+
+```r
 # Fit a linear discriminant model
 fit.lda <- train(classe ~ . -accel_arm_x,
 		     method = "lda",
@@ -87,10 +101,16 @@ pred.lda <- predict(fit.lda, newdata = testing)
 confusionMatrix(pred.lda, testing$classe)$overall[1]
 ```
 
+```
+## Accuracy 
+##    0.705
+```
+
 ### Decision tree
 Another simple model is a decision tree. This approach iteratively looks for the variable and value that best separates the categories. It is naturally suited to classification problems, but may struggle to capture some of the complexity in the data and is prone to overfitting. We can see that this approach performs much worse than the lda model above.
 
-```{r cart}
+
+```r
 set.seed(1212)
 fit.cart <- train(classe ~ .,
 			method = "rpart",
@@ -100,10 +120,16 @@ pred.cart <- predict(fit.cart, newdata = testing)
 confusionMatrix(pred.cart, testing$classe)$overall[1]
 ```
 
+```
+## Accuracy 
+##   0.4871
+```
+
 ### Boosted decision trees
 Boosting involves fitting lots of decision trees. As the fitting proceeds, data that was mis-classified by previous trees is up-weighted. This has the advantage of gradually eroding the residuals. The trees themselves are typically less complex than a single decision tree approach. While this approach can still overfit the data, it is less prone than a single decision tree model. This approach performs dramatically better than either lda or a single decision tree.
 
-```{r gbm}
+
+```r
 set.seed(2222)
 fit.gbm <- train(classe ~ .,
 		     method = "gbm",
@@ -114,10 +140,16 @@ pred.gbm <- predict(fit.gbm, newdata = testing)
 confusionMatrix(pred.gbm, testing$classe)$overall[1]
 ```
 
+```
+## Accuracy 
+##   0.9833
+```
+
 ### Random forest model
 Random forest is essentially a bagged decision tree approach. Like boosting, this involves growing lots of simpler trees. However here trees are grown on random sub-sets of the data (both observations and variables). This approach tends to avoid overfitting and is very popular because it tends to work well "out of the box".
 
-```{r random forest, cache=TRUE}
+
+```r
 set.seed(3333)
 fit.rf <- train(classe ~ ., 
 		    method = "rf",
@@ -128,10 +160,20 @@ pred.rf <- predict(fit.rf, newdata = testing)
 confusionMatrix(pred.rf, testing$classe)$overall[1]
 ```
 
+```
+## Accuracy 
+##   0.9979
+```
+
 We can see that the random forest model performs best overall. Based on its performance on the sub-sampled test set, I expect it to have an **out-of-sample error rate of around 0.2%**. Note that this measure of accuracy is similar to that given by 10-fold cross-validation:
 
-```{r 10-fold cv acc}
+
+```r
 fit.rf$results[2,2]
+```
+
+```
+## [1] 0.998
 ```
 
 This shows that 10-fold cross-validation can be as good an estimate of accuracy as using a separate test set.
