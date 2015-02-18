@@ -1,9 +1,7 @@
----
-title: "Machine Learning Course Project"
-author: "Steve Senior"
-date: "17 February 2015"
-output: html_document
----
+# Practical Machine Learning Course Project
+Steven Senior
+
+*18 February 2015*
 
 ## Summary
 The task for this assignment was to train an algorithm to predict whether a weight lifting exercise was being performed well or not using data from sensors mounted on the participant and weight. I describe how I have cleaned the data and narrowed down the variables to be used for prediction. I describe my approach to building and testing predictive models. I then fit four different models and assess their likely out-of-sample accuracy using two different approaches.
@@ -88,7 +86,7 @@ Here I train four models:
 * A random forest model.
 
 ### Linear discriminant analysis
-Linear discriminant analysis is one of the simplest approaches to classification. This approach tries to find linear boundaries in the variable space that best separate the categories. It is similar to logistic regression, but relies on more assumptions about the data (namely that the distributions of the features within categories are normally distributed). However, it is more naturally suited to classification problems like this one where the outcome variable is multinomial (classe is a factor with five levels).
+Linear discriminant analysis is one of the simplest approaches to classification. This approach tries to find linear boundaries in the variable space that best separate the categories. It is similar to logistic regression, but relies on more assumptions about the data (namely that the distributions of the features within categories are normally distributed). However, it is more naturally suited to classification problems like this one where the outcome variable is multinomial (classe is a factor with five levels). I had to exclude one variable because the variance wasn't high enough for the lda algorithm to work.
 
 
 ```r

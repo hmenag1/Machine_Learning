@@ -1,5 +1,6 @@
 # Practical Machine Learning Course Project
 Steven Senior
+
 *18 February 2015*
 
 ## Summary
@@ -72,7 +73,7 @@ Here I train four models:
 * A random forest model.
 
 ### Linear discriminant analysis
-Linear discriminant analysis is one of the simplest approaches to classification. This approach tries to find linear boundaries in the variable space that best separate the categories. It is similar to logistic regression, but relies on more assumptions about the data (namely that the distributions of the features within categories are normally distributed). However, it is more naturally suited to classification problems like this one where the outcome variable is multinomial (classe is a factor with five levels).
+Linear discriminant analysis is one of the simplest approaches to classification. This approach tries to find linear boundaries in the variable space that best separate the categories. It is similar to logistic regression, but relies on more assumptions about the data (namely that the distributions of the features within categories are normally distributed). However, it is more naturally suited to classification problems like this one where the outcome variable is multinomial (classe is a factor with five levels). I had to exclude one variable because the variance wasn't high enough for the lda algorithm to work.
 
 ```{r lda}
 # Fit a linear discriminant model
@@ -100,7 +101,7 @@ confusionMatrix(pred.cart, testing$classe)$overall[1]
 ### Boosted decision trees
 Boosting involves fitting lots of decision trees. As the fitting proceeds, data that was mis-classified by previous trees is up-weighted. This has the advantage of gradually eroding the residuals. The trees themselves are typically less complex than a single decision tree approach. While this approach can still overfit the data, it is less prone than a single decision tree model. This approach performs dramatically better than either lda or a single decision tree.
 
-```{r gbm}
+```{r gbm, cache=TRUE}
 set.seed(2222)
 fit.gbm <- train(classe ~ .,
 		     method = "gbm",
